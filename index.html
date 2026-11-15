@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechX Practice App</title>
+  <style>
+    /* ===================== RESET & CSS VARIABLES ===================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --clr-bg:          #0f1117;
+      --clr-surface:     #1a1d2e;
+      --clr-surface2:    #252840;
+      --clr-border:      #2e3250;
+      --clr-text:        #e8eaf6;
+      --clr-text-muted:  #8b92b8;
+      --clr-accent:      #5c6bc0;
+      --clr-accent-h:    #7986cb;
+      --clr-green:       #4caf50;
+      --clr-yellow:      #ffc107;
+      --clr-orange:      #ff9800;
+      --clr-red:         #f44336;
+      --clr-green-bg:    rgba(76,175,80,0.12);
+      --clr-yellow-bg:   rgba(255,193,7,0.12);
+      --clr-orange-bg:   rgba(255,152,0,0.12);
+      --clr-red-bg:      rgba(244,67,54,0.12);
+      --radius:          12px;
+      --radius-sm:       8px;
+      --shadow:          0 4px 24px rgba(0,0,0,0.5);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===================== HEADER ===================== */
+    header {
+      background: var(--clr-surface);
+      border-bottom: 1px solid var(--clr-border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 62px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--clr-accent-h);
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .logo span { color: var(--clr-text-muted); font-weight: 400; font-size: 0.82rem; margin-left: 4px; }
+
+    .tabs { display: flex; gap: 4px; flex: 1; justify-content: center; }
+
+    .tab-btn {
+      padding: 8px 18px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--clr-text-muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--clr-text); background: var(--clr-surface2); }
+    .tab-btn.active { background: var(--clr-accent); color: white; border-color: var(--clr-accent); }
+
+    .header-actions { display: flex; gap: 8px; }
+
+    .icon-btn {
+      background: var(--clr-surface2);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      color: var(--clr-text-muted);
+      cursor: pointer;
+      padding: 8px 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { color: var(--clr-text); border-color: var(--clr-accent); }
+
+    /* ===================== LAYOUT ===================== */
+    .app-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+    .mode-panel {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      display: none;
+    }
+    .mode-panel.active { display: block; }
+
+    /* ===================== HISTORY SIDEBAR ===================== */
+    .history-sidebar {
+      width: 290px;
+      background: var(--clr-surface);
+      border-left: 1px solid var(--clr-border);
+      padding: 20px;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .history-sidebar.open { display: flex; }
+
+    .history-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--clr-border);
+      flex-shrink: 0;
+    }
+
+    .history-item {
+      background: var(--clr-surface2);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+    }
+    .history-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .h-mode-badge { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--clr-accent); color: white; }
+    .h-score { font-size: 0.95rem; font-weight: 800; }
+    .h-meta { font-size: 0.72rem; color: var(--clr-text-muted); }
+    .history-empty { text-align: center; color: var(--clr-text-muted); font-size: 0.85rem; padding: 24px 0; }
+
+    /* ===================== CARDS ===================== */
+    .card {
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--clr-text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* ===================== PASSAGE / TOPIC ===================== */
+    .passage-text {
+      font-size: 1.12rem;
+      line-height: 1.85;
+      background: var(--clr-surface2);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 3px solid var(--clr-accent);
+    }
+
+    .topic-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
+
+    .structure-hint {
+      background: var(--clr-surface2);
+      border-radius: var(--radius-sm);
+      padding: 13px 17px;
+      margin-bottom: 18px;
+      font-size: 0.84rem;
+      color: var(--clr-text-muted);
+      line-height: 1.6;
+    }
+    .structure-hint strong { color: var(--clr-accent-h); }
+
+    /* ===================== MODE HEADER ===================== */
+    .mode-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .mode-title { font-size: 1.35rem; font-weight: 800; }
+    .mode-subtitle { font-size: 0.88rem; color: var(--clr-text-muted); margin-top: 3px; }
+    .mode-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    /* ===================== BADGES ===================== */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; }
+    .badge-easy   { background: var(--clr-green-bg);  color: var(--clr-green); }
+    .badge-medium { background: var(--clr-yellow-bg); color: var(--clr-yellow); }
+    .badge-hard   { background: var(--clr-red-bg);    color: var(--clr-red); }
+    .cat-badge { display: inline-block; font-size: 0.75rem; padding: 3px 11px; border-radius: 20px; background: rgba(92,107,192,0.15); color: var(--clr-accent-h); margin-bottom: 10px; }
+
+    /* ===================== TIMER ===================== */
+    .timer-container { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+    .timer-ring-wrap { position: relative; width: 120px; height: 120px; }
+    .timer-ring-wrap svg { transform: rotate(-90deg); display: block; }
+    .ring-bg { fill: none; stroke: var(--clr-surface2); stroke-width: 8; }
+    .ring-fg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
+    .timer-digital {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem; font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-label { font-size: 0.75rem; color: var(--clr-text-muted); margin-top: 7px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* ===================== TEXTAREA ===================== */
+    .answer-textarea {
+      width: 100%; min-height: 130px;
+      background: var(--clr-surface2);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm);
+      color: var(--clr-text);
+      font-size: 1rem; line-height: 1.65;
+      padding: 14px; resize: vertical;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .answer-textarea:focus { outline: none; border-color: var(--clr-accent); }
+    .answer-textarea:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Word count bar */
+    .wc-bar { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 0.84rem; color: var(--clr-text-muted); }
+    .wc-track { flex: 1; height: 5px; background: var(--clr-surface2); border-radius: 3px; overflow: hidden; }
+    .wc-fill { height: 100%; border-radius: 3px; background: var(--clr-green); transition: width 0.25s, background 0.25s; }
+
+    /* ===================== BUTTONS ===================== */
+    .btn {
+      padding: 10px 22px; border-radius: var(--radius-sm); border: none;
+      font-size: 0.92rem; font-weight: 700; cursor: pointer;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-primary  { background: var(--clr-accent); color: white; }
+    .btn-primary:hover { background: var(--clr-accent-h); }
+    .btn-secondary { background: var(--clr-surface2); color: var(--clr-text); border: 1px solid var(--clr-border); }
+    .btn-secondary:hover { border-color: var(--clr-accent); color: var(--clr-accent-h); }
+    .btn-danger { background: var(--clr-red-bg); color: var(--clr-red); border: 1px solid rgba(244,67,54,0.3); }
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+    .btn-record { background: var(--clr-red); color: white; }
+    .btn-record:hover { background: #d32f2f; }
+    .btn-record.recording { background: #d32f2f; animation: pulse-btn 1.5s infinite; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    @keyframes pulse-btn { 0%,100% { box-shadow: 0 0 0 0 rgba(244,67,54,0.4); } 50% { box-shadow: 0 0 0 8px rgba(244,67,54,0); } }
+
+    /* ===================== MIC STATUS ===================== */
+    .mic-row { display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--clr-text-muted); margin-bottom: 8px; }
+    .mic-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--clr-text-muted); flex-shrink: 0; }
+    .mic-dot.live { background: var(--clr-red); animation: pulse-dot 1s infinite; }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    /* ===================== AUDIO SECTION (Mode B) ===================== */
+    .audio-section {
+      text-align: center; padding: 24px 20px;
+      background: var(--clr-surface2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+    }
+    .audio-icon { font-size: 2.4rem; margin-bottom: 8px; }
+    .audio-status { font-size: 0.9rem; color: var(--clr-text-muted); margin-top: 8px; }
+    .reveal-btn {
+      font-size: 0.78rem; color: var(--clr-text-muted);
+      background: none; border: 1px dashed var(--clr-border);
+      border-radius: 4px; padding: 4px 10px; cursor: pointer; margin-top: 12px;
+      transition: all 0.2s;
+    }
+    .reveal-btn:hover { color: var(--clr-orange); border-color: var(--clr-orange); }
+    .transcript-reveal {
+      margin-top: 10px; font-size: 0.88rem; color: var(--clr-orange);
+      background: var(--clr-orange-bg); border-radius: var(--radius-sm);
+      padding: 10px 14px; display: none; text-align: left;
+    }
+    .transcript-reveal.shown { display: block; }
+
+    /* ===================== THINKING OVERLAY ===================== */
+    .think-wrap { position: relative; }
+    .think-overlay {
+      display: none; position: absolute; inset: 0;
+      background: rgba(15,17,23,0.82);
+      border-radius: var(--radius-sm);
+      align-items: center; justify-content: center;
+      font-size: 0.95rem; color: var(--clr-text-muted); z-index: 10;
+      text-align: center; padding: 20px;
+    }
+    .think-overlay.active { display: flex; }
+
+    /* ===================== SCORE DISPLAY ===================== */
+    .score-panel { display: none; }
+    .score-panel.visible { display: block; }
+
+    .score-overall {
+      text-align: center; padding: 22px;
+      border-radius: var(--radius-sm); margin-bottom: 16px;
+    }
+    .score-num { font-size: 3.5rem; font-weight: 900; line-height: 1; }
+    .score-label { font-size: 1rem; margin-top: 5px; }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+    .score-metric { background: var(--clr-surface2); border-radius: var(--radius-sm); padding: 13px; text-align: center; }
+    .metric-name { font-size: 0.72rem; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .metric-val { font-size: 1.55rem; font-weight: 800; }
+    .metric-bar { height: 4px; border-radius: 2px; margin-top: 6px; background: var(--clr-border); }
+    .metric-fill { height: 100%; border-radius: 2px; }
+
+    .feedback-box { background: var(--clr-surface2); border-radius: var(--radius-sm); padding: 16px; }
+    .feedback-box p { font-size: 0.88rem; line-height: 1.65; color: var(--clr-text-muted); }
+    .feedback-box p + p { margin-top: 8px; }
+    .feedback-box p strong { color: var(--clr-text); }
+    .feedback-box p em { color: var(--clr-accent-h); font-style: normal; }
+
+    /* Diff display (Mode B) */
+    .diff-display { background: var(--clr-surface2); border-radius: var(--radius-sm); padding: 16px; font-size: 0.98rem; line-height: 2.1; margin-bottom: 12px; }
+    .diff-correct { color: var(--clr-green); }
+    .diff-missing { color: var(--clr-red); text-decoration: line-through; opacity: 0.75; }
+    .diff-extra   { color: var(--clr-orange); background: rgba(255,152,0,0.1); border-radius: 3px; padding: 0 2px; }
+    .diff-label   { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--clr-text-muted); display: block; margin-bottom: 6px; }
+
+    /* ===================== SETTINGS MODAL ===================== */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--clr-surface); border: 1px solid var(--clr-border); border-radius: var(--radius); padding: 28px; width: 420px; max-width: 95vw; box-shadow: var(--shadow); }
+    .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 22px; }
+    .setting-row { margin-bottom: 20px; }
+    .setting-label { font-size: 0.82rem; color: var(--clr-text-muted); margin-bottom: 9px; display: block; }
+    .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .radio-btn { padding: 7px 15px; border-radius: 20px; border: 1px solid var(--clr-border); background: none; color: var(--clr-text-muted); font-size: 0.84rem; cursor: pointer; transition: all 0.2s; }
+    .radio-btn.selected { background: var(--clr-accent); color: white; border-color: var(--clr-accent); }
+    .voice-sel { background: var(--clr-surface2); border: 1px solid var(--clr-border); color: var(--clr-text); padding: 9px 12px; border-radius: var(--radius-sm); width: 100%; font-size: 0.88rem; }
+
+    /* ===================== SCROLLBAR ===================== */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--clr-border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--clr-accent); }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 768px) {
+      .history-sidebar { display: none !important; }
+      .mode-panel { padding: 20px 14px; }
+      .tab-btn { padding: 7px 11px; font-size: 0.8rem; }
+      header { padding: 0 14px; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<header>
+  <div class="logo">SpeechX <span>Practice</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('a')">📖 Read Aloud</button>
+    <button class="tab-btn"        onclick="switchTab('b')">🎧 Listen & Repeat</button>
+    <button class="tab-btn"        onclick="switchTab('c')">🎤 Extempore</button>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="toggleHistory()" title="Practice History">📊</button>
+    <button class="icon-btn" onclick="openSettings()"  title="Settings">⚙️</button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- ==================== MODE A : READ ALOUD ==================== -->
+  <div class="mode-panel active" id="panel-a">
+    <div class="mode-header">
+      <div>
+        <div class="mode-title">📖 Read Aloud Simulator</div>
+        <div class="mode-subtitle">Read the passage (or type it) within the timer — same difficulty as real SpeechX</div>
+      </div>
+      <div class="mode-controls">
+        <span class="badge badge-medium" id="a-diff-badge">Medium</span>
+        <button class="btn btn-secondary" onclick="loadA()">↩ New Passage</button>
+      </div>
+    </div>
+
+    <div class="card" id="a-exercise">
+      <div class="card-title">Passage</div>
+      <div class="passage-text" id="a-passage">Loading...</div>
+
+      <!-- Timer -->
+      <div class="timer-container">
+        <div class="timer-ring-wrap">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="ring-fg" id="a-ring" cx="60" cy="60" r="52"
+              stroke-dasharray="326.7" stroke-dashoffset="0" stroke="var(--clr-green)"/>
+          </svg>
+          <div class="timer-digital" id="a-timer-disp">0:30</div>
+        </div>
+        <div class="timer-label" id="a-timer-label">Ready — press Start</div>
+      </div>
+
+      <!-- TYPE section -->
+      <div id="a-type-sec">
+        <div class="card-title">Your Answer — Type Mode</div>
+        <textarea class="answer-textarea" id="a-textarea"
+          placeholder="Start typing the passage when ready..." disabled></textarea>
+      </div>
+
+      <!-- MIC section -->
+      <div id="a-mic-sec" style="display:none">
+        <div class="mic-row"><div class="mic-dot" id="a-mdot"></div><span id="a-mstatus">Mic mode — press Start to begin recording</span></div>
+        <div class="answer-textarea" id="a-tbox" style="cursor:default;min-height:80px"><em style="color:var(--clr-text-muted)">Transcript appears here...</em></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary"   id="a-start"  onclick="startA()">▶ Start</button>
+        <button class="btn btn-primary"   id="a-submit" onclick="submitA()" disabled>✓ Submit</button>
+        <button class="btn btn-record"    id="a-rec"    onclick="toggleRecA()" style="display:none">🎙 Record</button>
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="card score-panel" id="a-score">
+      <div class="card-title">Score Breakdown</div>
+      <div class="score-overall" id="a-overall"></div>
+      <div class="score-grid"   id="a-grid"></div>
+      <div class="feedback-box" id="a-fb"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary"   onclick="loadA()">Next Passage →</button>
+        <button class="btn btn-secondary" onclick="retryA()">↩ Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODE B : LISTEN & REPEAT ==================== -->
+  <div class="mode-panel" id="panel-b">
+    <div class="mode-header">
+      <div>
+        <div class="mode-title">🎧 Listen & Repeat Simulator</div>
+        <div class="mode-subtitle">Listen once — then repeat exactly what you heard</div>
+      </div>
+      <div class="mode-controls">
+        <span class="badge badge-medium" id="b-diff-badge">Medium</span>
+        <button class="btn btn-secondary" onclick="loadB()">↩ New Clip</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Audio Clip</div>
+      <div class="audio-section" id="b-audio">
+        <div class="audio-icon">🔊</div>
+        <div class="audio-status" id="b-astatus">Press Play to hear the sentence (plays once only)</div>
+        <button class="btn btn-primary" id="b-play" onclick="playB()" style="margin-top:14px">▶ Play Once</button>
+        <div>
+          <button class="reveal-btn" id="b-reveal" onclick="revealB()" style="display:none">
+            👁 Reveal transcript (use only after your attempt)
+          </button>
+        </div>
+        <div class="transcript-reveal" id="b-revbox"></div>
+      </div>
+
+      <!-- TYPE -->
+      <div id="b-type-sec">
+        <div class="card-title">Type What You Heard</div>
+        <textarea class="answer-textarea" id="b-textarea"
+          placeholder="Type what you heard from the clip..." disabled></textarea>
+      </div>
+
+      <!-- MIC -->
+      <div id="b-mic-sec" style="display:none">
+        <div class="mic-row"><div class="mic-dot" id="b-mdot"></div><span id="b-mstatus">Mic mode — recording begins after clip plays</span></div>
+        <div class="answer-textarea" id="b-tbox" style="cursor:default"><em style="color:var(--clr-text-muted)">Transcript appears here...</em></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="b-submit" onclick="submitB()" disabled>✓ Submit</button>
+        <button class="btn btn-record"  id="b-rec"    onclick="toggleRecB()" style="display:none">🎙 Record</button>
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="card score-panel" id="b-score">
+      <div class="card-title">Score & Word Analysis</div>
+      <div class="score-overall" id="b-overall"></div>
+      <div class="diff-display"  id="b-diff"></div>
+      <div class="feedback-box"  id="b-fb"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary"   onclick="loadB()">Next Clip →</button>
+        <button class="btn btn-secondary" onclick="retryB()">↩ Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODE C : EXTEMPORE ==================== -->
+  <div class="mode-panel" id="panel-c">
+    <div class="mode-header">
+      <div>
+        <div class="mode-title">🎤 Extempore Speaking</div>
+        <div class="mode-subtitle">30 s to think · 60 s to answer · aim for 110–140 words</div>
+      </div>
+      <div class="mode-controls">
+        <button class="btn btn-secondary" onclick="loadC()">↩ New Topic</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cat-badge" id="c-cat">Workplace</div>
+      <div class="topic-text" id="c-topic">Loading topic...</div>
+
+      <div class="structure-hint">
+        <strong>Structure Guide:</strong>
+        1️⃣ <strong>Opinion</strong> — "In my opinion…" &nbsp;
+        2️⃣ <strong>Reason</strong> — "The reason is…" &nbsp;
+        3️⃣ <strong>Example</strong> — "For example…" &nbsp;
+        4️⃣ <strong>Conclusion</strong> — "In conclusion…"
+      </div>
+
+      <!-- Dual timers -->
+      <div style="display:flex;gap:24px;justify-content:center;margin-bottom:20px;flex-wrap:wrap">
+        <div class="timer-container">
+          <div class="timer-ring-wrap">
+            <svg width="110" height="110" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-fg" id="c-think-ring" cx="60" cy="60" r="52"
+                stroke-dasharray="326.7" stroke-dashoffset="0" stroke="var(--clr-yellow)"/>
+            </svg>
+            <div class="timer-digital" id="c-think-disp" style="font-size:1.5rem">0:30</div>
+          </div>
+          <div class="timer-label">Thinking</div>
+        </div>
+        <div class="timer-container">
+          <div class="timer-ring-wrap">
+            <svg width="110" height="110" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-fg" id="c-speak-ring" cx="60" cy="60" r="52"
+                stroke-dasharray="326.7" stroke-dashoffset="0" stroke="var(--clr-green)"/>
+            </svg>
+            <div class="timer-digital" id="c-speak-disp" style="font-size:1.5rem">1:00</div>
+          </div>
+          <div class="timer-label">Speaking</div>
+        </div>
+      </div>
+
+      <!-- TYPE -->
+      <div class="think-wrap" id="c-type-sec">
+        <div class="think-overlay" id="c-overlay">🤔 Thinking time… answer area unlocks after the timer</div>
+        <textarea class="answer-textarea" id="c-textarea"
+          placeholder="Type your answer here (target: 110–140 words in 60 seconds)..."
+          disabled style="min-height:175px" oninput="updateWC()"></textarea>
+        <div class="wc-bar">
+          <span id="c-wc-label">Words: 0 / 120 target</span>
+          <div class="wc-track"><div class="wc-fill" id="c-wc-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- MIC -->
+      <div id="c-mic-sec" style="display:none">
+        <div class="mic-row"><div class="mic-dot" id="c-mdot"></div><span id="c-mstatus">Recording starts after thinking time</span></div>
+        <div class="answer-textarea" id="c-tbox" style="cursor:default;min-height:160px"><em style="color:var(--clr-text-muted)">Live transcript appears here...</em></div>
+        <div class="wc-bar"><span id="c-wc-mic">Words: 0 / 120</span></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary"  id="c-start"  onclick="startC()">▶ Start</button>
+        <button class="btn btn-primary"  id="c-submit" onclick="submitC()" disabled>✓ Submit</button>
+        <button class="btn btn-record"   id="c-rec"    onclick="toggleRecC()" style="display:none">🎙 Record</button>
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="card score-panel" id="c-score">
+      <div class="card-title">Extempore Score Breakdown</div>
+      <div class="score-overall" id="c-overall"></div>
+      <div class="score-grid"   id="c-grid"></div>
+      <div class="feedback-box" id="c-fb"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary"   onclick="loadC()">Next Topic →</button>
+        <button class="btn btn-secondary" onclick="retryC()">↩ Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HISTORY SIDEBAR ==================== -->
+  <aside class="history-sidebar" id="history-sidebar">
+    <div class="history-title">📊 Practice History</div>
+    <div id="hist-list"><div class="history-empty">No sessions yet.<br>Complete an exercise to track progress.</div></div>
+    <button class="btn btn-danger" onclick="clearHist()" style="margin-top:12px;flex-shrink:0">🗑 Clear History</button>
+  </aside>
+</div>
+
+<!-- ==================== SETTINGS MODAL ==================== -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙️ Settings</div>
+
+    <div class="setting-row">
+      <span class="setting-label">Input Mode</span>
+      <div class="radio-group">
+        <button class="radio-btn selected" id="s-type" onclick="setSetting('inputMode','type',this)">⌨️ Type Mode (Primary)</button>
+        <button class="radio-btn"          id="s-mic"  onclick="setSetting('inputMode','mic',this)">🎙 Mic Mode</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Difficulty</span>
+      <div class="radio-group">
+        <button class="radio-btn"          id="s-easy"   onclick="setSetting('difficulty','Easy',this)">Easy</button>
+        <button class="radio-btn selected" id="s-medium" onclick="setSetting('difficulty','Medium',this)">Medium</button>
+        <button class="radio-btn"          id="s-hard"   onclick="setSetting('difficulty','Hard',this)">Hard (Real SpeechX)</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">TTS Voice — Listen & Repeat</span>
+      <select class="voice-sel" id="voice-sel" onchange="Settings.set('voiceIdx', parseInt(this.value))">
+        <option value="0">Default Voice</option>
+      </select>
+    </div>
+
+    <div class="btn-row" style="justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EMBEDDED DATA ==================== -->
+<!--
+  EDIT PASSAGES, CLIPS & TOPICS HERE
+  Difficulty values: "Easy" | "Medium" | "Hard"
+  Add new entries following the same JSON structure.
+-->
+<script id="app-data" type="application/json">
+{
+  "passages": [
+    {
+      "id":"ra_e1","difficulty":"Easy",
+      "text":"Good customer service means listening carefully to what clients need and responding with empathy and patience. When customers feel heard, they are more likely to trust your company and return for future business.",
+      "keywords":["customer","service","listening","empathy","patience","trust","business"]
+    },
+    {
+      "id":"ra_e2","difficulty":"Easy",
+      "text":"Every morning, our team meets to discuss the day's goals and assign tasks. Clear communication helps us stay on track and meet our deadlines without confusion or delay.",
+      "keywords":["team","goals","communication","deadlines","tasks","track"]
+    },
+    {
+      "id":"ra_e3","difficulty":"Easy",
+      "text":"Technology has changed the way we work and communicate. Email, video calls, and project management tools help teams collaborate from different locations around the world.",
+      "keywords":["technology","communicate","email","collaborate","teams","management"]
+    },
+    {
+      "id":"ra_e4","difficulty":"Easy",
+      "text":"A healthy work-life balance is important for long-term productivity. Taking breaks and spending time with family helps employees stay motivated and avoid burnout at work.",
+      "keywords":["work-life","balance","productivity","motivated","burnout","employees"]
+    },
+    {
+      "id":"ra_e5","difficulty":"Easy",
+      "text":"Please fill out the feedback form at the end of your visit. Your opinions help us improve our services and make your next experience even better than before.",
+      "keywords":["feedback","opinions","improve","services","experience"]
+    },
+    {
+      "id":"ra_m1","difficulty":"Medium",
+      "text":"The quarterly review highlighted several areas for improvement, particularly in customer retention and digital engagement. The management team has proposed a series of targeted initiatives to address these gaps before the fiscal year ends.",
+      "keywords":["quarterly","retention","digital","engagement","management","initiatives","fiscal"]
+    },
+    {
+      "id":"ra_m2","difficulty":"Medium",
+      "text":"Environmental sustainability has become a critical priority for corporations worldwide. Organizations are now expected to report on their carbon footprint, reduce waste, and invest in renewable energy sources as part of their corporate responsibility frameworks.",
+      "keywords":["sustainability","corporations","carbon","footprint","renewable","corporate","responsibility"]
+    },
+    {
+      "id":"ra_m3","difficulty":"Medium",
+      "text":"Artificial intelligence is transforming industries at an unprecedented pace. From automating repetitive tasks to enabling complex data analysis, AI tools are redefining the roles of professionals across all sectors of the global economy.",
+      "keywords":["artificial","intelligence","transforming","unprecedented","automating","analysis","professionals"]
+    },
+    {
+      "id":"ra_m4","difficulty":"Medium",
+      "text":"Effective negotiation requires both parties to understand their own priorities and to listen actively to the other side's concerns. A successful negotiation results in an agreement that is mutually beneficial and sustainable over time.",
+      "keywords":["negotiation","priorities","concerns","mutually","beneficial","sustainable","agreement"]
+    },
+    {
+      "id":"ra_m5","difficulty":"Medium",
+      "text":"The pharmaceutical industry is under growing pressure to make life-saving medications more affordable and accessible. Regulatory bodies are reviewing pricing strategies to ensure that essential drugs remain available to patients who need them.",
+      "keywords":["pharmaceutical","medications","affordable","accessible","regulatory","pricing","essential"]
+    },
+    {
+      "id":"ra_h1","difficulty":"Hard",
+      "text":"The entrepreneur's questionnaire revealed that a comfortable yet ambitious schedule was necessary to sustain growth. Words such as entrepreneur, questionnaire, and comfortable are frequently mispronounced, which can undermine a speaker's professional credibility in formal business settings.",
+      "keywords":["entrepreneur","questionnaire","comfortable","schedule","mispronounced","credibility","professional"]
+    },
+    {
+      "id":"ra_h2","difficulty":"Hard",
+      "text":"Contemporary geopolitical developments have precipitated a paradigm shift in multilateral trade agreements, necessitating that corporations recalibrate their supply chain strategies to mitigate exposure to regulatory and logistical vulnerabilities.",
+      "keywords":["geopolitical","precipitated","paradigm","multilateral","recalibrate","mitigate","vulnerabilities"]
+    },
+    {
+      "id":"ra_h3","difficulty":"Hard",
+      "text":"The proliferation of misinformation across digital platforms has catalyzed an unprecedented crisis of epistemic authority, compelling legislators to deliberate on frameworks that balance freedom of expression with accountability for verifiably false content.",
+      "keywords":["proliferation","misinformation","catalyzed","epistemic","compelling","legislators","accountability"]
+    },
+    {
+      "id":"ra_h4","difficulty":"Hard",
+      "text":"Corporate governance structures must reconcile the fiduciary obligations of executive leadership with the increasingly vocal expectations of stakeholder communities, encompassing shareholders, employees, regulators, and civil society organizations.",
+      "keywords":["governance","fiduciary","obligations","stakeholder","reconcile","encompassing","shareholders"]
+    },
+    {
+      "id":"ra_h5","difficulty":"Hard",
+      "text":"Bioequivalence studies are indispensable in establishing whether a generic pharmaceutical formulation delivers therapeutic outcomes statistically equivalent to its branded counterpart under rigorously controlled clinical trial conditions.",
+      "keywords":["bioequivalence","pharmaceutical","formulation","therapeutic","statistically","counterpart","rigorously"]
+    }
+  ],
+
+  "listenClips": [
+    {"id":"lr_e1","difficulty":"Easy","text":"Please hold the line while I transfer your call."},
+    {"id":"lr_e2","difficulty":"Easy","text":"Thank you for calling. How may I help you today?"},
+    {"id":"lr_e3","difficulty":"Easy","text":"I will get back to you by end of day."},
+    {"id":"lr_e4","difficulty":"Easy","text":"Could you please repeat that for me?"},
+    {"id":"lr_e5","difficulty":"Easy","text":"Your appointment has been confirmed for tomorrow morning."},
+    {"id":"lr_m1","difficulty":"Medium","text":"Please hold the line while I transfer your call to the relevant department."},
+    {"id":"lr_m2","difficulty":"Medium","text":"I understand your concern and I will escalate this to my supervisor immediately."},
+    {"id":"lr_m3","difficulty":"Medium","text":"Your feedback is important to us and we will use it to improve our services."},
+    {"id":"lr_m4","difficulty":"Medium","text":"The deadline for submitting your application has been extended by two weeks."},
+    {"id":"lr_m5","difficulty":"Medium","text":"We appreciate your patience and sincerely apologize for any inconvenience caused."},
+    {"id":"lr_m6","difficulty":"Medium","text":"Could you please provide your account number so I can pull up your records?"},
+    {"id":"lr_m7","difficulty":"Medium","text":"The meeting has been rescheduled to Thursday at three o'clock in the afternoon."},
+    {"id":"lr_h1","difficulty":"Hard","text":"The implementation of the new data privacy protocol requires all employees to complete mandatory compliance training."},
+    {"id":"lr_h2","difficulty":"Hard","text":"Despite the turbulent market conditions, the organization maintained its competitive positioning through strategic diversification."},
+    {"id":"lr_h3","difficulty":"Hard","text":"The entrepreneurial ecosystem continues to evolve, presenting unprecedented opportunities for innovation and disruption."},
+    {"id":"lr_h4","difficulty":"Hard","text":"Pursuant to the terms of the agreement, the indemnification clause shall remain in effect for a period of five years."},
+    {"id":"lr_h5","difficulty":"Hard","text":"The questionnaire was specifically designed to evaluate employee engagement and organizational commitment across all hierarchical levels."},
+    {"id":"lr_h6","difficulty":"Hard","text":"Our comprehensive sustainability initiative encompasses renewable energy adoption, waste reduction protocols, and carbon offset investments."},
+    {"id":"lr_h7","difficulty":"Hard","text":"Distinguished delegates, we are convened today to deliberate on the ramifications of artificial intelligence in modern jurisprudence."},
+    {"id":"lr_h8","difficulty":"Hard","text":"The pharmaceutical conglomerate announced a merger subject to regulatory approval from the relevant antitrust authorities."}
+  ],
+
+  "extemporeTopics": [
+    {"id":"ex_w01","category":"Workplace","topic":"Should companies allow employees to work from home permanently?"},
+    {"id":"ex_w02","category":"Workplace","topic":"Is a four-day work week a productive idea for modern businesses?"},
+    {"id":"ex_w03","category":"Workplace","topic":"Should performance bonuses be based on team results or individual achievement?"},
+    {"id":"ex_w04","category":"Workplace","topic":"How important is emotional intelligence in leadership roles?"},
+    {"id":"ex_w05","category":"Workplace","topic":"Should dress codes still exist in modern workplaces?"},
+    {"id":"ex_w06","category":"Workplace","topic":"Is job-hopping a sign of ambition or a lack of loyalty?"},
+    {"id":"ex_w07","category":"Workplace","topic":"How should companies effectively handle employee burnout?"},
+    {"id":"ex_w08","category":"Workplace","topic":"Should salaries be transparent within an organization?"},
+    {"id":"ex_w09","category":"Workplace","topic":"Is multitasking productive or harmful to work quality?"},
+    {"id":"ex_w10","category":"Workplace","topic":"Should companies invest more in employee training and development?"},
+    {"id":"ex_w11","category":"Workplace","topic":"How do you define a healthy and sustainable work-life balance?"},
+    {"id":"ex_w12","category":"Workplace","topic":"Should managers be promoted from within or hired externally?"},
+    {"id":"ex_t01","category":"Technology","topic":"Is artificial intelligence a threat to human employment?"},
+    {"id":"ex_t02","category":"Technology","topic":"Should social media platforms be regulated by governments?"},
+    {"id":"ex_t03","category":"Technology","topic":"Is online learning as effective as traditional classroom education?"},
+    {"id":"ex_t04","category":"Technology","topic":"How has technology fundamentally changed the nature of human relationships?"},
+    {"id":"ex_t05","category":"Technology","topic":"Should children under thirteen be allowed to use smartphones?"},
+    {"id":"ex_t06","category":"Technology","topic":"Is data privacy a fundamental right or a consumer privilege?"},
+    {"id":"ex_t07","category":"Technology","topic":"How will automation reshape the job market in the next decade?"},
+    {"id":"ex_t08","category":"Technology","topic":"Should self-driving cars be permitted on public roads?"},
+    {"id":"ex_t09","category":"Technology","topic":"Is cryptocurrency a reliable alternative to traditional banking?"},
+    {"id":"ex_t10","category":"Technology","topic":"How should companies protect themselves from growing cybersecurity threats?"},
+    {"id":"ex_t11","category":"Technology","topic":"What are the ethical implications of facial recognition technology?"},
+    {"id":"ex_t12","category":"Technology","topic":"Should robots and AI systems be granted legal rights in the future?"},
+    {"id":"ex_e01","category":"Environment","topic":"Is climate change the most pressing issue facing our generation?"},
+    {"id":"ex_e02","category":"Environment","topic":"Should plastic bags and single-use plastics be banned completely?"},
+    {"id":"ex_e03","category":"Environment","topic":"How can individuals take meaningful action to reduce their carbon footprint?"},
+    {"id":"ex_e04","category":"Environment","topic":"Should governments prioritize economic growth over environmental protection?"},
+    {"id":"ex_e05","category":"Environment","topic":"Is nuclear energy a clean and viable alternative to fossil fuels?"},
+    {"id":"ex_e06","category":"Environment","topic":"How effective are international climate agreements like the Paris Accord?"},
+    {"id":"ex_e07","category":"Environment","topic":"Should companies be legally required to disclose their carbon emissions?"},
+    {"id":"ex_e08","category":"Environment","topic":"How can cities become more sustainable and eco-friendly in the future?"},
+    {"id":"ex_e09","category":"Environment","topic":"Is electric vehicle adoption the best solution to urban air pollution?"},
+    {"id":"ex_e10","category":"Environment","topic":"Should animal agriculture be regulated for its environmental impact?"},
+    {"id":"ex_e11","category":"Environment","topic":"How should we balance deforestation with economic development needs?"},
+    {"id":"ex_e12","category":"Environment","topic":"What role should young people play in the global climate movement?"},
+    {"id":"ex_ed1","category":"Education","topic":"Should higher education be free and accessible to all students?"},
+    {"id":"ex_ed2","category":"Education","topic":"Is rote learning or critical thinking more important in modern schooling?"},
+    {"id":"ex_ed3","category":"Education","topic":"Should mobile phones be permitted in school classrooms?"},
+    {"id":"ex_ed4","category":"Education","topic":"How has the COVID-19 pandemic permanently transformed education?"},
+    {"id":"ex_ed5","category":"Education","topic":"Should students be evaluated through exams or continuous assessment?"},
+    {"id":"ex_ed6","category":"Education","topic":"Is a college degree still necessary for career success today?"},
+    {"id":"ex_ed7","category":"Education","topic":"How can schools better prepare students for the modern job market?"},
+    {"id":"ex_ed8","category":"Education","topic":"Should coding and programming be a mandatory subject in all schools?"},
+    {"id":"ex_ed9","category":"Education","topic":"Is homeschooling a better alternative to traditional institutional schooling?"},
+    {"id":"ex_ed10","category":"Education","topic":"How should schools address the growing mental health crisis among students?"},
+    {"id":"ex_ed11","category":"Education","topic":"Should teachers be paid more than other professionals in society?"},
+    {"id":"ex_ed12","category":"Education","topic":"What is the role of sports and arts in a holistic and balanced education?"},
+    {"id":"ex_s01","category":"Social Issues","topic":"Should voting be mandatory for all eligible citizens?"},
+    {"id":"ex_s02","category":"Social Issues","topic":"How can society effectively address the growing wealth gap between rich and poor?"},
+    {"id":"ex_s03","category":"Social Issues","topic":"Is social media making people more isolated and less genuinely connected?"},
+    {"id":"ex_s04","category":"Social Issues","topic":"Should capital punishment be abolished in all countries?"},
+    {"id":"ex_s05","category":"Social Issues","topic":"How should governments tackle homelessness in growing urban areas?"},
+    {"id":"ex_s06","category":"Social Issues","topic":"Is complete gender equality fully achievable in today's society?"},
+    {"id":"ex_s07","category":"Social Issues","topic":"How should communities address the stigma surrounding mental health?"},
+    {"id":"ex_s08","category":"Social Issues","topic":"Should immigration policies be made stricter or more open and welcoming?"},
+    {"id":"ex_s09","category":"Social Issues","topic":"Is freedom of speech absolute, or should it have defined limits?"},
+    {"id":"ex_s10","category":"Social Issues","topic":"How can communities work together to effectively reduce racial discrimination?"},
+    {"id":"ex_s11","category":"Social Issues","topic":"Should junk food advertising targeting children be banned completely?"},
+    {"id":"ex_s12","category":"Social Issues","topic":"How has globalization affected local cultures and traditional community values?"}
+  ]
+}
+</script>
+
+<!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+<script>
+'use strict';
+
+// ===================== DATA =====================
+const AppData = JSON.parse(document.getElementById('app-data').textContent);
+
+// ===================== SETTINGS =====================
+const Settings = {
+  _d: null,
+  defaults: { inputMode: 'type', difficulty: 'Medium', voiceIdx: 0 },
+  load() {
+    try { this._d = { ...this.defaults, ...JSON.parse(localStorage.getItem('sx_settings') || '{}') }; }
+    catch { this._d = { ...this.defaults }; }
+    return this._d;
+  },
+  save()   { localStorage.setItem('sx_settings', JSON.stringify(this._d)); },
+  get(k)   { return this._d ? this._d[k] : this.defaults[k]; },
+  set(k,v) { this._d[k] = v; this.save(); }
+};
+
+// ===================== HISTORY =====================
+const History = {
+  LIMIT: 50,
+  load()   { try { return JSON.parse(localStorage.getItem('sx_history') || '[]'); } catch { return []; } },
+  save(e)  { localStorage.setItem('sx_history', JSON.stringify(e)); },
+  add(entry) {
+    const all = this.load();
+    all.unshift({ ...entry, ts: new Date().toISOString() });
+    this.save(all.slice(0, this.LIMIT));
+    renderHistory();
+  },
+  clear()  { localStorage.removeItem('sx_history'); renderHistory(); }
+};
+
+// ===================== TIMER =====================
+class Timer {
+  constructor({ secs, ringId, dispId, onTick, onDone }) {
+    this.total     = secs;
+    this.remaining = secs;
+    this.ringEl    = document.getElementById(ringId);
+    this.dispEl    = document.getElementById(dispId);
+    this.onTick    = onTick;
+    this.onDone    = onDone;
+    this._iv       = null;
+    this.C         = 326.7; // 2 * pi * 52
+    this._render();
+  }
+  start() {
+    if (this._iv) return;
+    this._iv = setInterval(() => {
+      this.remaining = Math.max(0, this.remaining - 1);
+      this._render();
+      if (this.onTick) this.onTick(this.remaining);
+      if (this.remaining <= 0) { this.stop(); if (this.onDone) this.onDone(); }
+    }, 1000);
+  }
+  stop()  { clearInterval(this._iv); this._iv = null; }
+  reset() { this.stop(); this.remaining = this.total; this._render(); }
+  _render() {
+    const pct = this.remaining / this.total;
+    if (this.ringEl) {
+      this.ringEl.style.strokeDashoffset = this.C * (1 - pct);
+      this.ringEl.style.stroke = pct > 0.5 ? 'var(--clr-green)' : pct > 0.25 ? 'var(--clr-yellow)' : 'var(--clr-red)';
+    }
+    if (this.dispEl) {
+      const m = Math.floor(this.remaining / 60), s = this.remaining % 60;
+      this.dispEl.textContent = m + ':' + String(s).padStart(2,'0');
+    }
+  }
+}
+
+// ===================== HELPERS =====================
+function tok(text) {
+  return text.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+}
+function occ(text, phrase) {
+  const re = new RegExp('\\b' + phrase.replace(/\s+/g,'\\s+') + '\\b', 'gi');
+  return (text.match(re)||[]).length;
+}
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function byDiff(arr, field) {
+  const d   = Settings.get('difficulty');
+  const sub = arr.filter(x => x[field] === d);
+  return sub.length ? sub : arr;
+}
+function simSc(base, range) {
+  return Math.min(100, Math.max(0, base + Math.round((Math.random() - 0.5) * range)));
+}
+
+function band(score) {
+  if (score >= 80) return { color:'var(--clr-green)',  bg:'var(--clr-green-bg)',  label:'Excellent' };
+  if (score >= 60) return { color:'var(--clr-yellow)', bg:'var(--clr-yellow-bg)', label:'Good' };
+  if (score >= 40) return { color:'var(--clr-orange)', bg:'var(--clr-orange-bg)', label:'Needs Work' };
+  return               { color:'var(--clr-red)',    bg:'var(--clr-red-bg)',    label:'Poor' };
+}
+
+function renderOverall(id, score, suffix) {
+  const b = band(score);
+  const el = document.getElementById(id);
+  el.style.background = b.bg;
+  el.innerHTML = `<div class="score-num" style="color:${b.color}">${score}</div>
+    <div class="score-label" style="color:${b.color}">${b.label} &mdash; ${suffix}</div>`;
+}
+
+function renderGrid(id, metrics) {
+  document.getElementById(id).innerHTML = metrics.map(m => {
+    const b = band(m.v);
+    return `<div class="score-metric">
+      <div class="metric-name">${m.n}</div>
+      <div class="metric-val" style="color:${b.color}">${m.v}</div>
+      <div class="metric-bar"><div class="metric-fill" style="width:${m.v}%;background:${b.color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== WEB SPEECH API =====================
+let activeRec = null;
+const hasSR = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+function startRec(onResult, onErr) {
+  if (!hasSR()) { if (onErr) onErr(); return null; }
+  const SR  = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+  rec.onresult = e => {
+    let out = '';
+    for (let i = 0; i < e.results.length; i++) out += e.results[i][0].transcript + ' ';
+    onResult(out.trim());
+  };
+  rec.onerror = () => { if (onErr) onErr(); };
+  rec.start();
+  activeRec = rec;
+  return rec;
+}
+function stopRec() { if (activeRec) { try { activeRec.stop(); } catch(e){} activeRec = null; } }
+
+// TTS
+let voices = [];
+function loadVoices() {
+  voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+  const sel = document.getElementById('voice-sel');
+  if (voices.length) {
+    sel.innerHTML = voices.map((v,i) => `<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+  }
+}
+function speak(text, rate = 1.0) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const idx = Settings.get('voiceIdx') || 0;
+  if (voices[idx]) u.voice = voices[idx];
+  u.rate = rate; u.lang = 'en-US';
+  speechSynthesis.speak(u);
+  return u;
+}
+
+// ===================== UI / NAV =====================
+function switchTab(m) {
+  ['a','b','c'].forEach((x,i) => {
+    document.getElementById('panel-'+x).classList.toggle('active', x===m);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', x===m);
+  });
+}
+function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('open'); }
+function openSettings()  { document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function setSetting(key, val, btn) {
+  Settings.set(key, val);
+  if (btn) {
+    btn.closest('.radio-group').querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+  if (key === 'inputMode') applyInputUI();
+}
+
+// Show/hide type vs mic sections based on setting + availability
+function applyInputUI() {
+  const useMic = Settings.get('inputMode') === 'mic' && hasSR();
+  const show   = (el, flag) => document.getElementById(el).style.display = flag ? 'block' : 'none';
+  const flex   = (el, flag) => document.getElementById(el).style.display = flag ? 'inline-flex' : 'none';
+
+  show('a-type-sec', !useMic); show('a-mic-sec', useMic); flex('a-rec', useMic);
+  show('b-type-sec', !useMic); show('b-mic-sec', useMic); flex('b-rec', useMic);
+  show('c-type-sec', !useMic); show('c-mic-sec', useMic); flex('c-rec', useMic);
+}
+
+// ===================== HISTORY RENDER =====================
+function renderHistory() {
+  const all  = History.load();
+  const icon = { A:'📖', B:'🎧', C:'🎤' };
+  const el   = document.getElementById('hist-list');
+  if (!all.length) {
+    el.innerHTML = '<div class="history-empty">No sessions yet.<br>Complete an exercise to track progress.</div>';
+    return;
+  }
+  el.innerHTML = all.slice(0,30).map(e => {
+    const b = band(e.score);
+    const d = new Date(e.ts).toLocaleString('en-IN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    return `<div class="history-item">
+      <div class="history-item-top">
+        <span class="h-mode-badge">${icon[e.mode]||''} Mode ${e.mode}</span>
+        <span class="h-score" style="color:${b.color}">${e.score}/100</span>
+      </div>
+      <div class="h-meta">${e.diff} &middot; ${d}</div>
+    </div>`;
+  }).join('');
+}
+function clearHist() { if (confirm('Clear all practice history?')) History.clear(); }
+
+// =====================================================================
+// MODE A — READ ALOUD
+// =====================================================================
+const A = { item:null, timer:null, t0:null, recOn:false };
+
+function loadA() {
+  stopRec(); A.recOn = false;
+  const diff = Settings.get('difficulty');
+  A.item = rand(byDiff(AppData.passages, 'difficulty'));
+
+  const secs = diff==='Easy' ? 40 : diff==='Hard' ? 20 : 30;
+  A.timer = new Timer({ secs, ringId:'a-ring', dispId:'a-timer-disp', onDone: submitA });
+
+  _t('a-passage', A.item.text);
+  _t('a-timer-label', 'Ready — press Start');
+  _dbadge('a-diff-badge', diff);
+  _ta('a-textarea', '', true);
+  _html('a-tbox', '<em style="color:var(--clr-text-muted)">Transcript appears here...</em>');
+  _btn('a-start', false); _btn('a-submit', true);
+  _cl('a-score', 'visible', false);
+  document.getElementById('a-rec').classList.remove('recording');
+  document.getElementById('a-rec').textContent = '🎙 Record';
+  document.getElementById('a-mdot').classList.remove('live');
+  _t('a-mstatus','Mic mode — press Start to begin recording');
+}
+
+function startA() {
+  _btn('a-start', true); _btn('a-submit', false);
+  _t('a-timer-label','Reading...');
+  A.t0 = Date.now();
+  if (Settings.get('inputMode')==='mic' && hasSR()) {
+    document.getElementById('a-mdot').classList.add('live');
+    _t('a-mstatus','Recording — read the passage aloud');
+    startRec(txt => _html('a-tbox', escHtml(txt)));
+  } else {
+    _ta('a-textarea','',false);
+    document.getElementById('a-textarea').focus();
+  }
+  A.timer.start();
+}
+
+function toggleRecA() {
+  if (!A.recOn) {
+    A.recOn = true;
+    document.getElementById('a-rec').textContent = '⏹ Stop';
+    document.getElementById('a-rec').classList.add('recording');
+    document.getElementById('a-mdot').classList.add('live');
+    startRec(txt => _html('a-tbox', escHtml(txt)));
+  } else {
+    A.recOn = false; stopRec();
+    document.getElementById('a-rec').textContent = '🎙 Record';
+    document.getElementById('a-rec').classList.remove('recording');
+    document.getElementById('a-mdot').classList.remove('live');
+  }
+}
+
+function submitA() {
+  A.timer.stop(); stopRec();
+  _btn('a-submit', true); _ta('a-textarea','x',true);
+  _t('a-timer-label','Submitted');
+
+  const useMic = Settings.get('inputMode')==='mic' && hasSR();
+  const typed  = useMic ? document.getElementById('a-tbox').textContent
+                        : document.getElementById('a-textarea').value;
+  const elapsed = A.t0 ? Math.round((Date.now()-A.t0)/1000) : 30;
+  const r = scoreA(A.item, typed, elapsed, useMic);
+  showA(r);
+  History.add({ mode:'A', diff:Settings.get('difficulty'), score:r.overall });
+}
+
+function retryA() { _cl('a-score','visible',false); loadA(); }
+
+function scoreA(item, typed, elSecs, isMic) {
+  const kw      = item.keywords || [];
+  const tw      = tok(typed);
+  const kwHits  = kw.filter(k => tw.includes(k.toLowerCase())).length;
+  const complete = kw.length ? Math.round((kwHits/kw.length)*100) : 60;
+
+  const origTok = tok(item.text);
+  const overlap = origTok.filter(w => tw.includes(w)).length;
+  const coverPct = origTok.length ? Math.round((overlap/origTok.length)*100) : 60;
+
+  const targetW = (elSecs/60)*130;
+  const ratio   = targetW > 0 ? tw.length/targetW : 1;
+  const fluency = ratio>=0.75&&ratio<=1.25 ? simSc(85,15)
+                : ratio>=0.5              ? simSc(65,10) : simSc(45,10);
+  const pron    = isMic ? simSc(78,18) : simSc(82,10);
+  const inton   = isMic ? simSc(75,20) : simSc(78,10);
+  const overall = Math.round((complete+coverPct+fluency+pron+inton)/5);
+
+  const fb = [];
+  if (complete < 60)
+    fb.push(`<strong>⚠️ Keyword coverage low.</strong> Focus on these words: <em>${kw.slice(0,4).join(', ')}</em>.`);
+  else
+    fb.push(`<strong>✅ Keyword coverage:</strong> ${kwHits}/${kw.length} key words captured.`);
+
+  if (ratio < 0.7)
+    fb.push(`<strong>⚠️ Pacing too slow</strong> (${tw.length} words in ${elSecs}s). Aim for ~${Math.round(targetW)} words.`);
+  else if (ratio > 1.3)
+    fb.push(`<strong>⚠️ Pacing too fast.</strong> Slow down to ~130 wpm for clarity.`);
+  else
+    fb.push(`<strong>✅ Pacing looks good</strong> — close to the 130 wpm target.`);
+
+  if (isMic)
+    fb.push(`<strong>💡 Mic tip:</strong> Tricky words to practise: <em>entrepreneur, questionnaire, comfortable, schedule.</em>`);
+
+  return { complete, coverPct, fluency, pron, inton, overall, fb };
+}
+
+function showA(r) {
+  renderOverall('a-overall', r.overall, 'Read Aloud');
+  renderGrid('a-grid',[
+    {n:'Pronunciation',  v:r.pron},
+    {n:'Fluency',        v:r.fluency},
+    {n:'Intonation',     v:r.inton},
+    {n:'Completeness',   v:r.complete}
+  ]);
+  _html('a-fb', r.fb.map(p=>`<p>${p}</p>`).join(''));
+  _cl('a-score','visible',true);
+  document.getElementById('a-score').scrollIntoView({behavior:'smooth'});
+}
+
+// =====================================================================
+// MODE B — LISTEN & REPEAT
+// =====================================================================
+const B = { item:null, played:false, recOn:false };
+
+function loadB() {
+  stopRec(); B.recOn = false; B.played = false;
+  const diff = Settings.get('difficulty');
+  B.item = rand(byDiff(AppData.listenClips,'difficulty'));
+
+  _dbadge('b-diff-badge', diff);
+  _t('b-astatus','Press Play to hear the sentence (plays once only)');
+  document.getElementById('b-play').disabled = false;
+  document.getElementById('b-play').style.display = 'inline-flex';
+  document.getElementById('b-reveal').style.display = 'none';
+  _cl('b-revbox','shown',false);
+  _t('b-revbox','');
+  _ta('b-textarea','',true);
+  _html('b-tbox','<em style="color:var(--clr-text-muted)">Transcript appears here...</em>');
+  _btn('b-submit',true);
+  document.getElementById('b-rec').classList.remove('recording');
+  document.getElementById('b-rec').textContent = '🎙 Record';
+  document.getElementById('b-mdot').classList.remove('live');
+  _cl('b-score','visible',false);
+}
+
+function playB() {
+  if (B.played) return;
+  B.played = true;
+  document.getElementById('b-play').disabled = true;
+  _t('b-astatus','🔊 Playing… listen carefully!');
+
+  const diff = Settings.get('difficulty');
+  const rate = diff==='Easy' ? 0.85 : diff==='Hard' ? 1.08 : 0.95;
+  const u = speak(B.item.text, rate);
+
+  u.onend = () => {
+    _t('b-astatus','✅ Clip played once. Now respond below.');
+    document.getElementById('b-play').style.display = 'none';
+    document.getElementById('b-reveal').style.display = 'inline-block';
+    _btn('b-submit', false);
+
+    if (Settings.get('inputMode')==='mic' && hasSR()) {
+      document.getElementById('b-mdot').classList.add('live');
+      _t('b-mstatus','Recording — repeat what you heard');
+      startRec(txt => _html('b-tbox', escHtml(txt)));
+    } else {
+      _ta('b-textarea','',false);
+      document.getElementById('b-textarea').focus();
+    }
+  };
+}
+
+function revealB() {
+  _html('b-revbox', '📄 <strong>Original:</strong> ' + escHtml(B.item.text));
+  _cl('b-revbox','shown',true);
+}
+
+function toggleRecB() {
+  if (!B.recOn) {
+    B.recOn = true;
+    document.getElementById('b-rec').textContent = '⏹ Stop';
+    document.getElementById('b-rec').classList.add('recording');
+    document.getElementById('b-mdot').classList.add('live');
+    startRec(txt => _html('b-tbox', escHtml(txt)));
+  } else {
+    B.recOn = false; stopRec();
+    document.getElementById('b-rec').textContent = '🎙 Record';
+    document.getElementById('b-rec').classList.remove('recording');
+    document.getElementById('b-mdot').classList.remove('live');
+  }
+}
+
+function submitB() {
+  stopRec(); _btn('b-submit',true); _ta('b-textarea','x',true);
+
+  const useMic = Settings.get('inputMode')==='mic' && hasSR();
+  const typed  = useMic ? document.getElementById('b-tbox').textContent
+                        : document.getElementById('b-textarea').value;
+  const r = scoreB(B.item, typed);
+  showB(r);
+  History.add({ mode:'B', diff:Settings.get('difficulty'), score:r.score });
+}
+
+function retryB() { _cl('b-score','visible',false); loadB(); }
+
+function scoreB(item, typed) {
+  const orig    = tok(item.text);
+  const user    = tok(typed);
+  const matched = orig.filter(w => user.includes(w));
+  const missing = orig.filter(w => !user.includes(w));
+  const extra   = user.filter(w => !orig.includes(w));
+  const accuracy = orig.length ? Math.round((matched.length/orig.length)*100) : 0;
+  const score    = Math.round((matched.length/Math.max(orig.length,user.length))*100);
+  return { orig, user, matched, missing, extra, accuracy, score };
+}
+
+function buildDiff(orig, user) {
+  const us = new Set(user);
+  let html = '<span class="diff-label">Original sentence</span>';
+  html += orig.map(w => us.has(w)
+    ? `<span class="diff-correct">${w}</span>`
+    : `<span class="diff-missing">${w}</span>`).join(' ');
+
+  const os = new Set(orig);
+  const extras = user.filter(w => !os.has(w));
+  if (extras.length) {
+    html += '<br><span class="diff-label" style="margin-top:8px">Extra words you added</span>';
+    html += extras.map(w => `<span class="diff-extra">${w}</span>`).join(' ');
+  }
+  return html;
+}
+
+function showB(r) {
+  renderOverall('b-overall', r.score, 'Listen & Repeat');
+  _html('b-diff', buildDiff(r.orig, r.user));
+
+  const fb = [];
+  fb.push(`<strong>Word Accuracy:</strong> ${r.accuracy}% — ${r.matched.length} of ${r.orig.length} words matched.`);
+  if (r.missing.length) fb.push(`<strong>Missing:</strong> <em>${r.missing.join(', ')}</em>`);
+  if (r.extra.length)   fb.push(`<strong>Extra words:</strong> <em>${r.extra.join(', ')}</em>`);
+  if (r.score >= 80)    fb.push(`✅ Excellent retention! You captured almost the full sentence.`);
+  else if (r.score>=60) fb.push(`💡 Good attempt. Work on retaining complete phrase structure.`);
+  else                  fb.push(`⚠️ Practise listening for full sentences, not just individual words.`);
+
+  _html('b-fb', fb.map(p=>`<p>${p}</p>`).join(''));
+  _cl('b-score','visible',true);
+  document.getElementById('b-score').scrollIntoView({behavior:'smooth'});
+}
+
+// =====================================================================
+// MODE C — EXTEMPORE
+// =====================================================================
+const C = {
+  item:null, thinkT:null, speakT:null,
+  phase:'idle', recOn:false, micTxt:''
+};
+
+function loadC() {
+  stopRec(); C.phase='idle'; C.recOn=false; C.micTxt='';
+  C.item = rand(AppData.extemporeTopics);
+
+  _t('c-topic', C.item.topic);
+  _t('c-cat',   C.item.category);
+  _ta('c-textarea','',true);
+  _html('c-tbox','<em style="color:var(--clr-text-muted)">Live transcript appears here...</em>');
+  _t('c-wc-label','Words: 0 / 120 target');
+  _t('c-wc-mic',  'Words: 0 / 120');
+  document.getElementById('c-wc-fill').style.width   = '0%';
+  document.getElementById('c-wc-fill').style.background = 'var(--clr-green)';
+  _btn('c-start',false); _btn('c-submit',true);
+  document.getElementById('c-rec').classList.remove('recording');
+  document.getElementById('c-rec').textContent = '🎙 Record';
+  document.getElementById('c-mdot').classList.remove('live');
+  _cl('c-overlay','active',false);
+  _cl('c-score','visible',false);
+
+  C.thinkT = new Timer({ secs:30, ringId:'c-think-ring', dispId:'c-think-disp', onDone: startSpeak });
+  C.speakT = new Timer({ secs:60, ringId:'c-speak-ring', dispId:'c-speak-disp', onDone: submitC });
+}
+
+function startC() {
+  _btn('c-start',true);
+  C.phase = 'thinking';
+  _cl('c-overlay','active',true);
+  C.thinkT.start();
+}
+
+function startSpeak() {
+  C.phase = 'speaking';
+  _cl('c-overlay','active',false);
+  _btn('c-submit',false);
+
+  if (Settings.get('inputMode')==='mic' && hasSR()) {
+    document.getElementById('c-mdot').classList.add('live');
+    _t('c-mstatus','Recording — speak your answer!');
+    startRec(txt => {
+      C.micTxt = txt;
+      _html('c-tbox', escHtml(txt));
+      _t('c-wc-mic','Words: ' + tok(txt).length + ' / 120');
+    });
+  } else {
+    _ta('c-textarea','',false);
+    document.getElementById('c-textarea').focus();
+  }
+  C.speakT.start();
+}
+
+function toggleRecC() {
+  if (!C.recOn) {
+    C.recOn = true;
+    document.getElementById('c-rec').textContent = '⏹ Stop';
+    document.getElementById('c-rec').classList.add('recording');
+    document.getElementById('c-mdot').classList.add('live');
+    startRec(txt => {
+      C.micTxt = txt;
+      _html('c-tbox', escHtml(txt));
+      _t('c-wc-mic','Words: ' + tok(txt).length + ' / 120');
+    });
+  } else {
+    C.recOn = false; stopRec();
+    document.getElementById('c-rec').textContent = '🎙 Record';
+    document.getElementById('c-rec').classList.remove('recording');
+    document.getElementById('c-mdot').classList.remove('live');
+  }
+}
+
+function updateWC() {
+  const wc  = tok(document.getElementById('c-textarea').value).length;
+  const pct = Math.min(wc/140, 1);
+  _t('c-wc-label','Words: ' + wc + ' / 120 target');
+  const fill = document.getElementById('c-wc-fill');
+  fill.style.width = (pct*100) + '%';
+  fill.style.background = wc>=110&&wc<=160 ? 'var(--clr-green)'
+                        : wc>=70           ? 'var(--clr-yellow)' : 'var(--clr-orange)';
+}
+
+function submitC() {
+  if (C.phase === 'done') return;
+  C.phase = 'done';
+  if (C.thinkT) C.thinkT.stop();
+  if (C.speakT) C.speakT.stop();
+  stopRec();
+  _btn('c-submit',true); _ta('c-textarea','x',true);
+
+  const useMic = Settings.get('inputMode')==='mic' && hasSR();
+  const text   = useMic ? C.micTxt : document.getElementById('c-textarea').value;
+  const r = scoreC(text, C.item);
+  showC(r);
+  History.add({ mode:'C', diff:Settings.get('difficulty'), score:r.overall });
+}
+
+function retryC() { _cl('c-score','visible',false); loadC(); }
+
+function scoreC(text, topic) {
+  const words = tok(text);
+  const wc    = words.length;
+
+  const wcScore = wc>=110&&wc<=160 ? 100
+    : wc>=80&&wc<110  ? Math.round(70  + ((wc-80)/30)*30)
+    : wc>=50&&wc<80   ? Math.round(50  + ((wc-50)/30)*20)
+    : wc>160          ? Math.max(60, 100 - (wc-160)*2)
+    : Math.round((wc/50)*50);
+
+  const MARKERS = [
+    'first','second','third','finally','for example','in conclusion',
+    'therefore','however','moreover','in my opinion','i believe',
+    'to summarize','on the other hand','additionally','in addition',
+    'furthermore','as a result','consequently','to begin','firstly','secondly'
+  ];
+  const usedM = MARKERS.filter(m => text.toLowerCase().includes(m));
+  const structScore = Math.min(usedM.length * 20, 100);
+
+  const FILLERS = ['um','uh','like','you know','basically','literally','actually','sort of','kind of'];
+  const fCount  = FILLERS.reduce((n,f) => n + occ(text,f), 0);
+  const fillScore = Math.max(0, 100 - fCount * 15);
+
+  const tWords   = tok(topic.topic).filter(w => w.length > 3);
+  const relHits  = tWords.filter(w => words.includes(w)).length;
+  const relScore = tWords.length ? Math.min(100, Math.round((relHits/tWords.length)*150)) : 50;
+
+  const overall = Math.round((wcScore + structScore + fillScore + relScore) / 4);
+
+  const fb = [];
+  if      (wc < 50)        fb.push(`<strong>⚠️ Very short</strong> (${wc} words). The SpeechX target is <em>110–140 words in 60 seconds</em>.`);
+  else if (wc < 110)       fb.push(`<strong>⚠️ ${wc} words</strong> — push for 110–140 to hit the SpeechX sweet spot.`);
+  else if (wc > 160)       fb.push(`<strong>⚠️ ${wc} words</strong> — slightly over. Prioritise clear, concise points.`);
+  else                     fb.push(`<strong>✅ Great word count!</strong> ${wc} words — right in the SpeechX target range.`);
+
+  if (usedM.length === 0)  fb.push(`<strong>⚠️ No structure markers used.</strong> Try: <em>"In my opinion…", "For example…", "In conclusion…"</em>`);
+  else                     fb.push(`<strong>✅ Structure markers used:</strong> <em>${usedM.slice(0,4).join(', ')}</em>.`);
+
+  if (fCount > 2)          fb.push(`<strong>⚠️ ${fCount} filler words detected.</strong> Eliminate "um", "like", "you know" for a polished response.`);
+  else if (fCount > 0)     fb.push(`<strong>💡 ${fCount} filler word(s)</strong> detected — almost clean! Remove them completely.`);
+  else                     fb.push(`<strong>✅ Zero filler words</strong> — excellent verbal discipline!`);
+
+  if (relScore < 50)       fb.push(`<strong>⚠️ Topic drift detected.</strong> Tie your points back to: <em>"${topic.topic}"</em>`);
+  else if (relScore >= 80) fb.push(`<strong>✅ Well-focused</strong> — your answer addresses the topic clearly.`);
+  else                     fb.push(`<strong>💡 Relevance:</strong> Mention more topic-specific words to score higher.`);
+
+  return { wc, wcScore, structScore, fillScore, relScore, overall, usedM, fCount, fb };
+}
+
+function showC(r) {
+  renderOverall('c-overall', r.overall, 'Extempore Speaking');
+  renderGrid('c-grid',[
+    {n:'Word Count', v:r.wcScore},
+    {n:'Structure',  v:r.structScore},
+    {n:'Filler-Free',v:r.fillScore},
+    {n:'Relevance',  v:r.relScore}
+  ]);
+  _html('c-fb', r.fb.map(p=>`<p>${p}</p>`).join(''));
+  _cl('c-score','visible',true);
+  document.getElementById('c-score').scrollIntoView({behavior:'smooth'});
+}
+
+// ===================== MICRO HELPERS =====================
+function _t(id, txt)   { document.getElementById(id).textContent = txt; }
+function _html(id, h)  { document.getElementById(id).innerHTML   = h; }
+function _btn(id, dis) { document.getElementById(id).disabled    = dis; }
+function _cl(id,c,on)  { document.getElementById(id).classList.toggle(c, on); }
+function _ta(id,v,dis) {
+  const el = document.getElementById(id);
+  if (v !== 'x') el.value = v; // 'x' = keep value, just disable
+  el.disabled = dis;
+}
+function _dbadge(id, diff) {
+  const el = document.getElementById(id);
+  el.textContent = diff;
+  el.className = 'badge badge-' + diff.toLowerCase();
+}
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===================== SETTINGS UI RESTORE =====================
+function applySettingsUI() {
+  const s = Settings._d;
+  document.getElementById('s-type').classList.toggle('selected', s.inputMode==='type');
+  document.getElementById('s-mic').classList.toggle('selected',  s.inputMode==='mic');
+  document.getElementById('s-easy').classList.toggle('selected',   s.difficulty==='Easy');
+  document.getElementById('s-medium').classList.toggle('selected', s.difficulty==='Medium');
+  document.getElementById('s-hard').classList.toggle('selected',   s.difficulty==='Hard');
+}
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded', () => {
+  Settings.load();
+  applySettingsUI();
+
+  if (typeof speechSynthesis !== 'undefined') {
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  applyInputUI();
+  loadA(); loadB(); loadC();
+  renderHistory();
+
+  document.getElementById('settings-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSettings();
+  });
+});
+</script>
+</body>
+</html>
